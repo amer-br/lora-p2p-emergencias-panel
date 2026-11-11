@@ -1,0 +1,12 @@
+[
+  {"tipo": "PUNTO_REUNION", "nombre": "Punto de reunión A", "descripcion": "Explanada principal, frente a rectoría", "lat": 22.77216, "lon": -102.64395},
+  {"tipo": "PUNTO_REUNION", "nombre": "Punto de reunión B", "descripcion": "Estacionamiento norte", "lat": 22.77345, "lon": -102.64205},
+  {"tipo": "REFUGIO", "nombre": "Gimnasio universitario", "descripcion": "Refugio temporal, planta baja", "lat": 22.77025, "lon": -102.64525},
+  {"tipo": "REFUGIO", "nombre": "Auditorio", "descripcion": "Refugio temporal, acceso por puerta 2", "lat": 22.77256, "lon": -102.64035},
+  {"tipo": "SALIDA_EVACUACION", "nombre": "Salida Edificio A", "descripcion": "Escalera de emergencia, costado oriente", "lat": 22.77116, "lon": -102.64245},
+  {"tipo": "SALIDA_EVACUACION", "nombre": "Salida Edificio B", "descripcion": "Puerta posterior, planta baja", "lat": 22.77165, "lon": -102.64435},
+  {"tipo": "BOTIQUIN", "nombre": "Botiquín Edificio A", "descripcion": "Edificio A, planta baja, junto a la dirección", "lat": 22.77106, "lon": -102.64305},
+  {"tipo": "BOTIQUIN", "nombre": "Botiquín Biblioteca", "descripcion": "Biblioteca, mostrador de préstamo", "lat": 22.76985, "lon": -102.64175},
+  {"tipo": "DEA", "nombre": "DEA Gimnasio", "descripcion": "Gimnasio, entrada principal", "lat": 22.77045, "lon": -102.64495},
+  {"tipo": "DEA", "nombre": "DEA Rectoría", "descripcion": "Rectoría, vestíbulo", "lat": 22.77236, "lon": -102.64325}
+]

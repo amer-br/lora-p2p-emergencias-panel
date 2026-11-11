@@ -1,0 +1,46 @@
+{% extends 'emergencias/base.html' %}
+{% load panel %}
+{% block titulo %}Incidentes{% endblock %}
+{% block contenido %}
+<h1>Incidentes</h1>
+<form method="get" class="filtros">
+  <div>
+    <label for="estado">Estado</label>
+    <select name="estado" id="estado">
+      <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos (no resueltos)</option>
+      <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+      {% for valor, nombre in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="tipo">Categoría</label>
+    <select name="tipo" id="tipo">
+      <option value="">Todas</option>
+      {% for c in categorias %}<option value="{{ c.tipo }}" {% if tipo == c.tipo|stringformat:"d" %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+    </select>
+  </div>
+  <button class="boton secundario" type="submit">Filtrar</button>
+</form>
+
+<div class="tabla-scroll">
+<table>
+  <thead><tr><th>Prioridad</th><th>Estado</th><th>Mensaje</th><th>Emisor</th><th>Recibido</th><th>Saltos</th><th>RSSI</th></tr></thead>
+  <tbody>
+  {% for i in incidentes %}
+    <tr>
+      <td><span class="etiqueta p-{{ i.prioridad }}">{{ i.categoria_nombre }}</span></td>
+      <td><span class="etiqueta e-{{ i.estado }}">{{ i.get_estado_display }}</span></td>
+      <td><a href="{% url 'incidente_detalle' i.pk %}">{{ i.texto|default:"(sin texto)" }}</a>
+        {% if i.origen == 'propio' %}<span class="etiqueta propio">Aviso del panel</span>{% endif %}</td>
+      <td><code>{{ i.sender_id|hex8 }}</code></td>
+      <td>{{ i.recibido_en|date:"d/m/Y H:i:s" }}</td>
+      <td class="num">{{ i.saltos|default_if_none:"—" }}</td>
+      <td class="num">{{ i.rssi|default_if_none:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="vacio">No hay incidentes con estos filtros.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

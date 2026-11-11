@@ -1,0 +1,82 @@
+{% extends 'emergencias/base.html' %}
+{% load static l10n %}
+{% block titulo %}Emitir aviso{% endblock %}
+{% block cabecera %}
+<link rel="stylesheet" href="{% static 'emergencias/vendor/leaflet/leaflet.css' %}">
+{% endblock %}
+{% block contenido %}
+<h1>Emitir aviso a la red</h1>
+<p class="ayuda">El aviso viaja como una alerta normal (trama de 56 bytes) y llega a todos los teléfonos al alcance de la red.</p>
+<form method="post" class="dos-columnas">
+  {% csrf_token %}
+  <div class="tarjeta">
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="campo">
+      <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+      {{ form.tipo }}{{ form.tipo.errors }}
+    </div>
+    <div class="campo">
+      <label for="{{ form.texto.id_for_label }}">{{ form.texto.label }}</label>
+      {{ form.texto }}
+      <div class="ayuda"><span id="bytes">0</span>/32 bytes · {{ form.texto.help_text }}</div>
+      {{ form.texto.errors }}
+    </div>
+    <div class="campo">
+      <label>Ubicación</label>
+      <p class="ayuda" id="ubicacion-texto">Sin ubicación (haz clic en el mapa para marcarla).</p>
+      <button type="button" class="boton secundario" id="quitar-ubicacion">Quitar ubicación</button>
+      {{ form.lat }}{{ form.lon }}
+    </div>
+    <button class="boton peligro" type="submit"
+            onclick="return confirm('¿Transmitir este aviso a toda la red?')">Transmitir aviso</button>
+  </div>
+  <div id="mapa-aviso"
+       data-teselas="/teselas/{z}/{x}/{y}.png"
+       data-norte="{{ limites.norte|unlocalize }}" data-sur="{{ limites.sur|unlocalize }}"
+       data-oeste="{{ limites.oeste|unlocalize }}" data-este="{{ limites.este|unlocalize }}"></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'emergencias/vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'emergencias/mapa_campus.js' %}"></script>
+{{ categorias|json_script:"categorias" }}
+<script>
+(function () {
+  const texto = document.getElementById('{{ form.texto.id_for_label }}');
+  const contador = document.getElementById('bytes');
+  const contar = () => { contador.textContent = new TextEncoder().encode(texto.value).length; };
+  texto.addEventListener('input', contar); contar();
+
+  const lat = document.getElementById('{{ form.lat.id_for_label }}');
+  const lon = document.getElementById('{{ form.lon.id_for_label }}');
+  const etiqueta = document.getElementById('ubicacion-texto');
+  const div = document.getElementById('mapa-aviso');
+  const limites = MapaCampus.limitesDe(div);
+  const mapa = MapaCampus.crear(div);
+  const categorias = JSON.parse(document.getElementById('categorias').textContent);
+  const tipo = document.getElementById('{{ form.tipo.id_for_label }}');
+  let marcador = null;
+
+  // El marcador muestra cómo verán el aviso en el radar de la app.
+  function icono() {
+    const c = categorias[tipo.value] || { clave: '', prioridad: 'verde' };
+    return MapaCampus.iconoIncidente(c.prioridad, c.clave, true);
+  }
+  tipo.addEventListener('change', () => { if (marcador) marcador.setIcon(icono()); });
+
+  function fijar(latlng) {
+    if (!limites.contains(latlng)) { etiqueta.textContent = 'Ese punto está fuera del campus.'; return; }
+    lat.value = latlng.lat.toFixed(6); lon.value = latlng.lng.toFixed(6);
+    if (marcador) marcador.setLatLng(latlng); else marcador = L.marker(latlng, { icon: icono() }).addTo(mapa);
+    etiqueta.textContent = `Ubicación: ${lat.value}, ${lon.value}`;
+  }
+  mapa.on('click', (e) => fijar(e.latlng));
+  if (lat.value && lon.value) fijar(L.latLng(+lat.value, +lon.value));
+  document.getElementById('quitar-ubicacion').addEventListener('click', () => {
+    lat.value = ''; lon.value = '';
+    if (marcador) { marcador.remove(); marcador = null; }
+    etiqueta.textContent = 'Sin ubicación (haz clic en el mapa para marcarla).';
+  });
+})();
+</script>
+{% endblock %}

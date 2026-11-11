@@ -1,0 +1,49 @@
+# Panel de administración del campus para el Sistema LoRa P2P de emergencias.
+#
+#   docker compose up --build
+#   → http://localhost:8000  (usuario y contraseña en .env)
+#
+# El servicio "radio" se conecta al simulador de radio de la app
+# (Aplicacion/tool/simulador_radio.dart), que corre en la máquina anfitriona.
+
+services:
+  db:
+    image: postgres:16-alpine
+    env_file: .env
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      PREPARAR_BD: "1"
+      TESELAS_DIR: /datos/teselas
+    volumes:
+      - teselas:/datos/teselas
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  radio:
+    build: .
+    env_file: .env
+    command: ["python", "manage.py", "escuchar_radio"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  datos_postgres:
+  teselas:

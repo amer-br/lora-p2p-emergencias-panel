@@ -1,0 +1,161 @@
+/* Paleta tomada de Aplicacion/lib/ui/tema.dart */
+:root {
+  --fondo: #f4f4f4;
+  --superficie: #ffffff;
+  --texto: #1f1f1f;
+  --texto-suave: #5f6368;
+  --borde: #dadce0;
+  --verde-app: #1b5e20;
+  --rojo-sos: #d32f2f;
+  --rojo: #b71c1c;      --rojo-fondo: #ffcdd2;
+  --amarillo: #8d6e00;  --amarillo-fondo: #fff3c4;
+  --verde: #1b5e20;     --verde-fondo: #c8e6c9;
+  --azul: #1565c0;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--fondo); color: var(--texto);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--azul); }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
+
+.barra {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  background: var(--verde-app); color: #fff; padding: .6rem 1rem;
+}
+.barra .marca { font-weight: 700; margin-right: auto; }
+.barra a { color: #fff; text-decoration: none; padding: .3rem .5rem; border-radius: 6px; }
+.barra a.activo, .barra a:hover { background: rgba(255,255,255,.18); }
+.barra form { margin: 0; }
+.barra button { background: none; border: 1px solid rgba(255,255,255,.6); color: #fff; border-radius: 6px; padding: .25rem .6rem; cursor: pointer; }
+
+main { padding: 1rem; max-width: 1400px; margin: 0 auto; }
+.tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+
+.mensajes { list-style: none; padding: 0; margin: 0 0 1rem; }
+.mensajes li { padding: .6rem .8rem; border-radius: 8px; margin-bottom: .4rem; }
+.mensajes .success { background: var(--verde-fondo); color: var(--verde); }
+.mensajes .error { background: var(--rojo-fondo); color: var(--rojo); }
+
+.tablero { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 1rem; }
+#mapa { height: calc(100vh - 140px); min-height: 420px; border-radius: 10px; border: 1px solid var(--borde); }
+@media (max-width: 900px) {
+  .tablero { grid-template-columns: 1fr; }
+  #mapa { height: 55vh; }
+}
+
+.cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.cifra { background: var(--fondo); border-radius: 8px; padding: .5rem; text-align: center; }
+.cifra b { display: block; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.cifra span { font-size: .8rem; color: var(--texto-suave); }
+
+.estado-radio { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.punto { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.punto.on { background: #2e7d32; box-shadow: 0 0 0 3px #c8e6c9; }
+.punto.off { background: var(--rojo-sos); box-shadow: 0 0 0 3px var(--rojo-fondo); }
+
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { border-top: 1px solid var(--borde); padding: .55rem 0; }
+.lista li:first-child { border-top: 0; }
+.lista a { color: inherit; text-decoration: none; display: block; }
+.lista .meta { color: var(--texto-suave); font-size: .82rem; }
+
+.etiqueta { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.p-rojo { background: var(--rojo-fondo); color: var(--rojo); }
+.p-amarillo { background: var(--amarillo-fondo); color: var(--amarillo); }
+.p-verde { background: var(--verde-fondo); color: var(--verde); }
+.e-emitido { background: #eceff1; color: #37474f; }
+.e-en_asistencia { background: #e3f2fd; color: var(--azul); }
+.e-resuelto { background: var(--verde-fondo); color: var(--verde); }
+.propio { background: #ede7f6; color: #4527a0; }
+
+table { width: 100%; border-collapse: collapse; background: var(--superficie); }
+th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+th { font-size: .8rem; color: var(--texto-suave); font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; }
+.tabla-scroll { overflow-x: auto; }
+code { font-size: .82rem; word-break: break-all; }
+
+.boton {
+  display: inline-block; border: 0; border-radius: 8px; padding: .55rem .9rem; font: inherit; font-weight: 600;
+  cursor: pointer; background: var(--azul); color: #fff; text-decoration: none;
+}
+.boton.peligro { background: var(--rojo-sos); }
+.boton.exito { background: var(--verde-app); }
+.boton.secundario { background: #e8eaed; color: var(--texto); }
+.boton:disabled { opacity: .45; cursor: not-allowed; }
+.acciones { display: flex; gap: .5rem; flex-wrap: wrap; }
+.acciones form { margin: 0; }
+
+.filtros { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+label { display: block; font-weight: 600; margin-bottom: .25rem; }
+input[type=text], input[type=password], select, textarea {
+  width: 100%; padding: .5rem; border: 1px solid var(--borde); border-radius: 8px; font: inherit; background: #fff;
+}
+.filtros select { width: auto; }
+.campo { margin-bottom: .9rem; }
+.ayuda { color: var(--texto-suave); font-size: .82rem; }
+.errorlist { color: var(--rojo); margin: .25rem 0; padding-left: 1rem; }
+
+.dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 900px) { .dos-columnas { grid-template-columns: 1fr; } }
+#mapa-aviso { height: 360px; border-radius: 10px; border: 1px solid var(--borde); }
+
+.linea-tiempo { list-style: none; padding: 0; margin: 0; border-left: 3px solid var(--borde); }
+.linea-tiempo li { position: relative; padding: 0 0 .8rem 1rem; }
+.linea-tiempo li::before { content: ""; position: absolute; left: -7.5px; top: .35rem; width: 12px; height: 12px; border-radius: 50%; background: var(--azul); }
+
+.login { max-width: 360px; margin: 10vh auto; }
+.vacio { color: var(--texto-suave); font-style: italic; }
+
+/* ---------- Mapa del campus (mismo aspecto que lib/ui/radar_screen.dart) ---------- */
+/* Doble clase para ganarle a leaflet.css, que se carga después. */
+.leaflet-container.leaflet-container { background: #d7ebd5; font: inherit; }
+
+.ico { display: block; background: #fff; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+.ico-sos { --ico: url("iconos/sos.svg"); }
+.ico-fuego { --ico: url("iconos/local_fire_department.svg"); }
+.ico-medica { --ico: url("iconos/medical_services.svg"); }
+.ico-estructural { --ico: url("iconos/domain_disabled.svg"); }
+.ico-reporte { --ico: url("iconos/report.svg"); }
+.ico-punto_reunion { --ico: url("iconos/groups.svg"); }
+.ico-refugio { --ico: url("iconos/house.svg"); }
+.ico-salida_evacuacion { --ico: url("iconos/exit_to_app.svg"); }
+.ico-botiquin { --ico: url("iconos/healing.svg"); }
+.ico-dea { --ico: url("iconos/bolt.svg"); }
+
+/* Incidente: anillo con el fondo de la prioridad y círculo de color con el ícono blanco. */
+.mk-incidente {
+  width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--c); background: var(--f);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.35);
+}
+.mk-incidente.sel { border-width: 5px; }
+.mk-incidente > span { width: 32px; height: 32px; border-radius: 50%; background: var(--c); display: flex; align-items: center; justify-content: center; }
+.mk-incidente .ico { width: 20px; height: 20px; }
+.mk-incidente.p-rojo { --c: #b71c1c; --f: #ffcdd2; }
+.mk-incidente.p-amarillo { --c: #8d6e00; --f: #fff3c4; }
+.mk-incidente.p-verde { --c: #1b5e20; --f: #c8e6c9; }
+
+/* Recurso: círculo de su color con borde blanco. */
+.mk-recurso {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; background: var(--c);
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+.mk-recurso .ico { width: 18px; height: 18px; }
+.r-PUNTO_REUNION { --c: #1565c0; }
+.r-REFUGIO { --c: #2e7d32; }
+.r-SALIDA_EVACUACION { --c: #5d4037; }
+.r-BOTIQUIN { --c: #e65100; }
+.r-DEA { --c: #6a1b9a; }
+
+.mk-nodo { width: 16px; height: 16px; border-radius: 50%; background: #607d8b; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(96,125,139,.25); }
+
+.leyenda { background: #fff; padding: .5rem .7rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.3); font-size: .8rem; line-height: 1.7; }
+.leyenda .muestra { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: .45rem; vertical-align: -1px; background: var(--c); }
+.leyenda .muestra.p-rojo { --c: #b71c1c; }
+.leyenda .muestra.p-amarillo { --c: #8d6e00; }
+.leyenda .muestra.p-verde { --c: #1b5e20; }
+.leyenda .muestra.nodo { --c: #607d8b; }

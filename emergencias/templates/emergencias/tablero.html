@@ -1,0 +1,22 @@
+{% extends 'emergencias/base.html' %}
+{% load static l10n %}
+{% block titulo %}Tablero{% endblock %}
+{% block cabecera %}
+<link rel="stylesheet" href="{% static 'emergencias/vendor/leaflet/leaflet.css' %}">
+{% endblock %}
+{% block contenido %}
+<div class="tablero">
+  <div id="mapa" data-url="{% url 'mapa_datos' %}"
+       data-teselas="/teselas/{z}/{x}/{y}.png"
+       data-norte="{{ limites.norte|unlocalize }}" data-sur="{{ limites.sur|unlocalize }}"
+       data-oeste="{{ limites.oeste|unlocalize }}" data-este="{{ limites.este|unlocalize }}"></div>
+  <aside id="lateral" data-url="{% url 'tablero_fragmento' %}">
+    {% include 'emergencias/_tablero_lateral.html' %}
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'emergencias/vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'emergencias/mapa_campus.js' %}"></script>
+<script src="{% static 'emergencias/tablero.js' %}"></script>
+{% endblock %}

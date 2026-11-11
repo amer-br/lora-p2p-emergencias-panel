@@ -1,0 +1,61 @@
+{% load panel %}
+<div class="tarjeta">
+  <div class="estado-radio">
+    <span class="punto {% if radio.conectado %}on{% else %}off{% endif %}"></span>
+    {% if radio.conectado %}Radio conectada{% else %}Radio sin conexión{% endif %}
+  </div>
+  <div class="meta ayuda">
+    {% if radio.actualizado_en %}Última señal del servicio: {{ radio.actualizado_en|timesince }}{% else %}El servicio de radio no ha reportado.{% endif %}
+    {% if not radio.conectado and radio.ultimo_error %}<br>{{ radio.ultimo_error }}{% endif %}
+    {% if pendientes %}<br><b>{{ pendientes }} trama{{ pendientes|pluralize }} pendiente{{ pendientes|pluralize }} de envío.</b>{% endif %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  <div class="cifras">
+    <div class="cifra"><b>{{ activos|length }}</b><span>incidentes activos</span></div>
+    <div class="cifra"><b>{{ censo.a_salvo|length }}</b><span>a salvo</span></div>
+    <div class="cifra"><b>{{ censo.sin_reporte }}</b><span>sin reporte</span></div>
+  </div>
+  <p class="ayuda" style="margin:.5rem 0 0">
+    Censo {% if censo.desde %}desde {{ censo.desde|date:"d/m H:i" }}{% else %}sin iniciar (cuenta todos los reportes){% endif %} ·
+    {{ censo.nodos_conocidos }} nodo{{ censo.nodos_conocidos|pluralize }} escuchado{{ censo.nodos_conocidos|pluralize }}.
+    <a href="{% url 'censo' %}">Ver censo</a>
+  </p>
+</div>
+
+<div class="tarjeta">
+  <h2>Incidentes activos</h2>
+  {% if activos %}
+  <ul class="lista">
+    {% for i in activos %}
+    <li><a href="{% url 'incidente_detalle' i.pk %}">
+      <span class="etiqueta p-{{ i.prioridad }}">{{ i.categoria_nombre }}</span>
+      <span class="etiqueta e-{{ i.estado }}">{{ i.get_estado_display }}</span>
+      {% if i.origen == 'propio' %}<span class="etiqueta propio">Aviso del panel</span>{% endif %}
+      <div>{{ i.texto|default:"(sin texto)" }}</div>
+      <div class="meta">
+        hace {{ i.recibido_en|timesince }} · emisor {{ i.sender_id|hex8 }}
+        {% if i.atencion.en_camino or i.atencion.en_sitio %} · {{ i.atencion.en_camino }} en camino, {{ i.atencion.en_sitio }} en sitio{% elif i.estado == 'emitido' and i.origen == 'recibido' %} · <b style="color:var(--rojo)">sin atención</b>{% endif %}
+        {% if not i.tiene_ubicacion %} · sin ubicación{% endif %}
+      </div>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="vacio">No hay incidentes activos.</p>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>Nodos escuchados recientemente ({{ total_nodos }})</h2>
+  {% if nodos %}
+  <ul class="lista">
+    {% for n in nodos %}
+    <li>{{ n }} <span class="meta">· hace {{ n.visto_por_ultima_vez|timesince }}{% if n.ultimo_rssi is not None %} · RSSI {{ n.ultimo_rssi }} dBm{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="vacio">Aún no se ha escuchado ningún nodo.</p>
+  {% endif %}
+</div>

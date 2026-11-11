@@ -1,0 +1,80 @@
+{% extends 'emergencias/base.html' %}
+{% load panel %}
+{% block titulo %}{{ i.categoria_nombre }} {{ i.id_hex }}{% endblock %}
+{% block contenido %}
+<p><a href="{% url 'incidentes' %}">← Incidentes</a></p>
+<h1>
+  <span class="etiqueta p-{{ i.prioridad }}">{{ i.categoria_nombre }}</span>
+  <span class="etiqueta e-{{ i.estado }}">{{ i.get_estado_display }}</span>
+  {% if i.origen == 'propio' %}<span class="etiqueta propio">Aviso del panel</span>{% endif %}
+  {{ i.texto|default:"(sin texto)" }}
+</h1>
+
+<div class="dos-columnas">
+  <div>
+    <div class="tarjeta">
+      <h2>Datos de la trama</h2>
+      <table>
+        <tr><th>Msg_ID</th><td><code>{{ i.id_hex }}</code></td></tr>
+        <tr><th>Emisor (Sender_ID)</th><td><code>{{ i.emisor_hex }}</code>{% if i.sender_id == panel_id %} (este panel){% endif %}</td></tr>
+        <tr><th>Ubicación</th><td>{% if i.tiene_ubicacion %}{{ i.lat|floatformat:"6u" }}, {{ i.lon|floatformat:"6u" }}{% else %}Sin GPS{% endif %}</td></tr>
+        <tr><th>Hora del emisor</th><td>{{ i.hora_emisor|date:"d/m/Y H:i:s" }} <span class="ayuda">(informativa)</span></td></tr>
+        <tr><th>Recibido en el panel</th><td>{{ i.recibido_en|date:"d/m/Y H:i:s" }}</td></tr>
+        {% if i.origen == 'recibido' %}
+        <tr><th>Saltos · RSSI · SNR</th><td>{{ i.saltos|default_if_none:"—" }} · {{ i.rssi|default_if_none:"—" }} dBm · {{ i.snr|default_if_none:"—" }} dB</td></tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <div class="tarjeta">
+      <h2>Notas internas</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ notas.notas }}
+        <p class="ayuda">Solo se guardan en el panel; no se transmiten por radio.</p>
+        <button class="boton secundario" type="submit">Guardar notas</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="tarjeta">
+      <h2>Atención</h2>
+      <p>{{ atencion.en_camino }} en camino · {{ atencion.en_sitio }} en sitio</p>
+      {% if i.estado != 'resuelto' %}
+      <div class="acciones">
+        <form method="post" action="{% url 'incidente_acuse' i.pk %}">{% csrf_token %}
+          <input type="hidden" name="tipo" value="{{ ACK.EN_CAMINO.value }}">
+          <button class="boton" type="submit" {% if ya_en_camino or ya_llegue %}disabled{% endif %}>Brigada en camino</button>
+        </form>
+        <form method="post" action="{% url 'incidente_acuse' i.pk %}">{% csrf_token %}
+          <input type="hidden" name="tipo" value="{{ ACK.LLEGUE.value }}">
+          <button class="boton" type="submit" {% if ya_llegue %}disabled{% endif %}>Brigada en el sitio</button>
+        </form>
+        <form method="post" action="{% url 'incidente_acuse' i.pk %}"
+              onsubmit="return confirm('¿Marcar el incidente como resuelto? Se avisará a toda la red y no se puede revertir.')">{% csrf_token %}
+          <input type="hidden" name="tipo" value="{{ ACK.RESUELTO.value }}">
+          <button class="boton exito" type="submit" {% if not puede_resolver %}disabled title="Primero confirma la llegada al sitio"{% endif %}>Marcar como resuelto</button>
+        </form>
+      </div>
+      <p class="ayuda">Cada botón transmite un acuse a la red con el ID del panel ({{ panel_id|hex8 }}).
+        Según la SRS (CU-09), solo el emisor o quien llegó al sitio puede marcarlo como resuelto.</p>
+      {% else %}
+      <p>El incidente está resuelto.</p>
+      {% endif %}
+    </div>
+
+    <div class="tarjeta">
+      <h2>Línea de tiempo</h2>
+      <ul class="linea-tiempo">
+        <li><b>{% if i.origen == 'propio' %}Aviso emitido por el panel{% else %}Alerta recibida{% endif %}</b><br>
+          <span class="ayuda">{{ i.recibido_en|date:"d/m/Y H:i:s" }}</span></li>
+        {% for a in acuses %}
+        <li><b>{{ a.get_tipo_display }}</b> — {% if a.sender_id == panel_id %}este panel{% elif a.sender_id == i.sender_id %}la persona afectada{% else %}nodo <code>{{ a.emisor_hex }}</code>{% endif %}<br>
+          <span class="ayuda">{{ a.recibido_en|date:"d/m/Y H:i:s" }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

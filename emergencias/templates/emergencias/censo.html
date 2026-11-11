@@ -1,0 +1,34 @@
+{% extends 'emergencias/base.html' %}
+{% block titulo %}Censo de evacuación{% endblock %}
+{% block contenido %}
+<h1>Censo de evacuación</h1>
+<div class="dos-columnas">
+  <div class="tarjeta">
+    <div class="cifras">
+      <div class="cifra"><b>{{ resumen.a_salvo|length }}</b><span>a salvo</span></div>
+      <div class="cifra"><b>{{ resumen.nodos_conocidos }}</b><span>nodos escuchados</span></div>
+      <div class="cifra"><b>{{ resumen.sin_reporte }}</b><span>sin reporte</span></div>
+    </div>
+    <p class="ayuda">
+      {% if resumen.censo %}Censo iniciado el {{ resumen.desde|date:"d/m/Y H:i" }}{% if resumen.censo.iniciado_por %} por {{ resumen.censo.iniciado_por }}{% endif %}{% if resumen.censo.motivo %} — {{ resumen.censo.motivo }}{% endif %}.
+      {% else %}No se ha iniciado un censo; se cuentan todos los reportes recibidos.{% endif %}
+      Cada Sender_ID cuenta una sola vez. "Sin reporte" son los nodos escuchados en este censo que aún no dicen estar a salvo.
+    </p>
+    <h2>Personas a salvo</h2>
+    {% if personas %}
+    <ul class="lista">{% for p in personas %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="vacio">Aún no hay reportes.</p>
+    {% endif %}
+  </div>
+  <div class="tarjeta">
+    <h2>Iniciar nuevo censo</h2>
+    <p class="ayuda">Úsalo al comenzar una evacuación o simulacro: los reportes anteriores dejan de contar.</p>
+    <form method="post" onsubmit="return confirm('¿Iniciar un nuevo censo?')">
+      {% csrf_token %}
+      <div class="campo"><label for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>{{ form.motivo }}</div>
+      <button class="boton" type="submit">Iniciar nuevo censo</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

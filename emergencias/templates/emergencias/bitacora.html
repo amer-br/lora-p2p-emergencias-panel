@@ -1,0 +1,49 @@
+{% extends 'emergencias/base.html' %}
+{% block titulo %}Bitácora de radio{% endblock %}
+{% block contenido %}
+<h1>Bitácora de radio</h1>
+
+<div class="tarjeta">
+  <h2>Tramas transmitidas por el panel</h2>
+  <div class="tabla-scroll">
+  <table>
+    <thead><tr><th>Creada</th><th>Descripción</th><th>Estado</th><th>Enviada</th><th>Usuario</th></tr></thead>
+    <tbody>
+    {% for t in salientes %}
+      <tr>
+        <td>{{ t.creada_en|date:"d/m H:i:s" }}</td>
+        <td>{{ t.descripcion }}<br><code>{{ t.bytes_hex }}</code></td>
+        <td>{{ t.get_estado_display }}</td>
+        <td>{{ t.enviada_en|date:"d/m H:i:s"|default:"—" }}</td>
+        <td>{{ t.creada_por|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="vacio">El panel no ha transmitido nada.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Tramas escuchadas (últimas 150)</h2>
+  <div class="tabla-scroll">
+  <table>
+    <thead><tr><th>Hora</th><th>Resumen</th><th>Válida</th><th>RSSI</th><th>SNR</th></tr></thead>
+    <tbody>
+    {% for t in recibidas %}
+      <tr>
+        <td>{{ t.recibida_en|date:"d/m H:i:s" }}</td>
+        <td>{{ t.resumen }}<br><code>{{ t.bytes_hex }}</code></td>
+        <td>{% if t.valida %}Sí{% else %}<b style="color:var(--rojo)">No</b>{% endif %}</td>
+        <td class="num">{{ t.rssi|default_if_none:"—" }}</td>
+        <td class="num">{{ t.snr|default_if_none:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="vacio">Todavía no se ha escuchado ninguna trama.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

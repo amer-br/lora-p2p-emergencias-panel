@@ -1,0 +1,5 @@
+Django~=5.2.0
+psycopg[binary]~=3.2
+websockets~=15.0
+gunicorn~=23.0
+whitenoise~=6.9
