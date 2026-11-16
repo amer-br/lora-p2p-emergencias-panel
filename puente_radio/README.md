@@ -6,7 +6,7 @@ Conecta la **pasarela** (un LilyGO T-Beam conectado por USB a la computadora del
 T-Beam pasarela ──USB serie (115200, JSON Lines)──► puente_radio.py ──WebSocket ws://…:8081/ws──► contenedor "radio"
 ```
 
-Corre en Windows, **fuera de Docker**, porque Docker Desktop para Windows no puede pasarle el puerto USB a un contenedor (SDS, DD-09). Usa el mismo formato de mensajes que el simulador de radio, así que el panel no cambia entre pruebas y campo.
+Corre en Windows, **fuera de Docker**, porque Docker Desktop para Windows no puede pasarle el puerto USB a un contenedor (SDS 3.3). Usa el mismo formato de mensajes que el simulador de radio, así que el panel no cambia entre pruebas y campo.
 
 ## Instalación (una sola vez)
 

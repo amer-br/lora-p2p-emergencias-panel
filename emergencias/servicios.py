@@ -241,7 +241,7 @@ def iniciar_censo(usuario=None, motivo: str = '') -> Censo:
 #
 # Todos los tiempos se miden con la hora local del panel (recibido_en), no
 # con la hora que reporta cada emisor, porque los relojes de los teléfonos
-# pueden estar desfasados (SDS 8.6). Solo cuenta lo que la pasarela escuchó:
+# pueden estar desfasados (SDS 7.6). Solo cuenta lo que la pasarela escuchó:
 # un acuse que no llegó al panel no aparece en el reporte.
 
 @dataclass

@@ -1,11 +1,11 @@
 """Puente de radio: conecta la pasarela T-Beam (USB serie) con el panel (WebSocket).
 
 Corre en la computadora del puesto de mando, fuera de Docker, porque Docker
-Desktop para Windows no puede pasar el puerto USB a un contenedor (SDS, DD-09).
+Desktop para Windows no puede pasar el puerto USB a un contenedor (SDS 3.3).
 
     Pasarela T-Beam --USB serie, JSON Lines--> puente --WebSocket /ws--> servicio de radio del panel
 
-Formato (el mismo que usa el simulador de radio, SDS 8.8):
+Formato (el mismo que usa el simulador de radio, SDS 7.8):
   * Pasarela -> panel: una línea por trama recibida
         {"hex": "0BADCAFE...", "rssi": -102, "snr": -3.0}
   * Panel -> pasarela: una línea por trama que se debe transmitir
