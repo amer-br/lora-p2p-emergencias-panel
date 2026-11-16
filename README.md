@@ -68,7 +68,7 @@ Sin `POSTGRES_HOST`, Django usa SQLite, así que las pruebas no necesitan Docker
 
 ## Limitaciones
 
-- **La app aún no procesa acuses.** El panel los emite y los entiende según la SRS (trama de 20 B), pero `CodecTramas` de la app los descarta como Type desconocido, y el simulador los reporta como "inválidos". Cuando la app implemente CU-08 a CU-10, ambos lados se entenderán sin cambios en el panel.
+- **Acuses entre la app y el panel.** La app procesa los acuses (CU-08 a CU-11) con la misma trama de 20 B y las mismas reglas de consolidación, así que el estado de un incidente coincide en el tablero y en los teléfonos. En el historial de la app, los acuses del panel aparecen como «Nodo 0000CA0A» (su `PANEL_SENDER_ID`).
 - **Falta el firmware de la pasarela.** El puente de radio (`puente_radio/`) ya conecta el panel con un T-Beam por USB, pero el firmware del T-Beam en modo pasarela aún no existe; mientras tanto, el panel se prueba con el simulador. El contrato que debe cumplir el firmware está en `puente_radio/README.md`.
 - **Primera descarga del mapa.** Al arrancar, el panel descarga en segundo plano las 298 teselas del campus (zoom 15 a 19, ~2 MB) y las guarda en el volumen `teselas`; desde entonces el mapa funciona sin internet. Si arranca sin conexión, el mapa muestra la cuadrícula de referencia (como la app) y se puede completar después con `docker compose exec web python manage.py precargar_teselas`. Leaflet y los íconos vienen incluidos en el proyecto, así que no dependen de ningún CDN.
 - **Sin HTTPS.** Está pensado para la red local del campus. Si se publica fuera, hay que ponerlo detrás de un proxy con TLS y activar `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` y HSTS.
