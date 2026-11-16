@@ -17,5 +17,5 @@ class Command(BaseCommand):
         if User.objects.filter(username=usuario).exists():
             self.stdout.write(f'La cuenta "{usuario}" ya existe.')
             return
-        User.objects.create_superuser(usuario, os.environ.get('RESPONSABLE_EMAIL', ''), password)
+        User.objects.create_user(usuario, os.environ.get('RESPONSABLE_EMAIL', ''), password)
         self.stdout.write(f'Cuenta "{usuario}" creada.')

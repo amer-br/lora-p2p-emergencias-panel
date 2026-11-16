@@ -47,3 +47,21 @@ class NotasForm(forms.ModelForm):
 class CensoForm(forms.Form):
     motivo = forms.CharField(label='Motivo', max_length=120, required=False,
                              widget=forms.TextInput(attrs={'placeholder': 'p. ej. Simulacro 15 de octubre'}))
+
+
+class ReporteForm(forms.Form):
+    """Periodo del reporte del simulacro (CU-20)."""
+
+    _formato = '%Y-%m-%dT%H:%M'
+    desde = forms.DateTimeField(
+        label='Desde', input_formats=[_formato],
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format=_formato))
+    hasta = forms.DateTimeField(
+        label='Hasta', input_formats=[_formato],
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format=_formato))
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get('desde') and datos.get('hasta') and datos['desde'] >= datos['hasta']:
+            raise forms.ValidationError('El inicio del periodo debe ser anterior al final.')
+        return datos

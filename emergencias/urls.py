@@ -12,6 +12,6 @@ urlpatterns = [
     path('incidentes/<int:pk>/acuse/', views.incidente_acuse, name='incidente_acuse'),
     path('aviso/', views.emitir_aviso, name='emitir_aviso'),
     path('censo/', views.censo, name='censo'),
-    path('nodos/', views.nodos, name='nodos'),
-    path('bitacora/', views.bitacora, name='bitacora'),
+    path('reporte/', views.reporte, name='reporte'),
+    path('reporte/incidentes.csv', views.reporte_csv, name='reporte_csv'),
 ]

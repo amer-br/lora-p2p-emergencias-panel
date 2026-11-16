@@ -159,3 +159,12 @@ input[type=text], input[type=password], select, textarea {
 .leyenda .muestra.p-amarillo { --c: #8d6e00; }
 .leyenda .muestra.p-verde { --c: #1b5e20; }
 .leyenda .muestra.nodo { --c: #607d8b; }
+
+/* Reporte del simulacro: se imprime sin la barra ni los controles. */
+.filtros a.boton { text-decoration: none; display: inline-block; }
+@media print {
+  .barra, .no-imprimir, .mensajes { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: none; }
+  .tarjeta { break-inside: avoid; border-color: #bbb; }
+}

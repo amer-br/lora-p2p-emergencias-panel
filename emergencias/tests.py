@@ -169,13 +169,21 @@ class VistasTest(TestCase):
         i = Incidente.objects.get()
         for nombre, args in [('tablero', []), ('tablero_fragmento', []), ('incidentes', []),
                              ('incidente_detalle', [i.pk]), ('emitir_aviso', []), ('censo', []),
-                             ('nodos', []), ('bitacora', [])]:
+                             ('reporte', []), ('reporte_csv', [])]:
             with self.subTest(nombre):
                 self.assertEqual(self.client.get(reverse(nombre, args=args)).status_code, 200)
 
     def test_requiere_sesion(self):
         self.client.logout()
         self.assertRedirects(self.client.get(reverse('tablero')), '/entrar/?next=/')
+        for nombre in ['emitir_aviso', 'censo', 'reporte', 'reporte_csv']:
+            with self.subTest(nombre):
+                self.assertEqual(self.client.get(reverse(nombre)).status_code, 302)
+
+    def test_modulos_fuera_del_alcance_no_existen(self):
+        for ruta in ['/admin/', '/nodos/', '/bitacora/']:
+            with self.subTest(ruta):
+                self.assertEqual(self.client.get(ruta).status_code, 404)
 
     def test_ubicacion_del_detalle_con_punto_decimal(self):
         i = Incidente.objects.get()
@@ -261,3 +269,67 @@ class TeselasTest(TestCase):
     def test_requiere_sesion(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code, 302)
+
+
+@override_settings(PANEL_SENDER_ID=PANEL)
+class ReporteTest(TestCase):
+    """CU-20: tiempos medidos con la hora de recepción del panel."""
+
+    def setUp(self):
+        self.t0 = timezone.now() - timedelta(hours=1)
+
+    def en(self, segundos):
+        return self.t0 + timedelta(seconds=segundos)
+
+    def test_tiempos_de_respuesta(self):
+        # Incidente 1: en camino a los 60 s, llegada a los 300 s y resuelto a los 600 s.
+        servicios.procesar_trama(alerta(msg_id=1, sender=0xA1), ahora=self.en(0))
+        servicios.procesar_trama(acuse(11, 0xB1, protocolo.ACK_EN_CAMINO, 1), ahora=self.en(60))
+        servicios.procesar_trama(acuse(12, 0xB1, protocolo.ACK_LLEGUE, 1), ahora=self.en(300))
+        servicios.procesar_trama(acuse(13, 0xB1, protocolo.ACK_RESUELTO, 1), ahora=self.en(600))
+        # Incidente 2: un segundo respondedor acusa a los 120 s; nadie llega.
+        servicios.procesar_trama(alerta(msg_id=2, sender=0xA2, tipo=0x11), ahora=self.en(10))
+        servicios.procesar_trama(acuse(21, 0xB2, protocolo.ACK_EN_CAMINO, 2), ahora=self.en(130))
+        # Incidente 3: sin atención.
+        servicios.procesar_trama(alerta(msg_id=3, sender=0xA3, tipo=0x01), ahora=self.en(20))
+        # Un aviso del panel no cuenta como incidente que requiere respuesta.
+        servicios.emitir_aviso(0x13, 'Evacuar edificio B', None, None)
+
+        r = servicios.reporte_simulacro(self.en(-1), timezone.now())
+        self.assertEqual((r.total, r.atendidos, r.resueltos, r.sin_atencion), (3, 2, 1, 1))
+        self.assertEqual(r.por_prioridad, {'rojo': 2, 'amarillo': 1, 'verde': 0})
+        self.assertEqual(r.tiempo_primer_acuse.casos, 2)
+        self.assertEqual(r.tiempo_primer_acuse.mediana, 90.0)  # (60 + 120) / 2
+        self.assertEqual(r.tiempo_primer_acuse.maximo, 120.0)
+        self.assertEqual((r.tiempo_llegada.casos, r.tiempo_llegada.mediana), (1, 300.0))
+        self.assertEqual(r.tiempo_resolucion.mediana, 600.0)
+        self.assertEqual(r.avisos_emitidos, 1)
+        self.assertEqual(r.pct_atendidos, 66.7)
+        self.assertEqual([f.respondedores for f in r.filas], [1, 1, 0])
+
+    def test_acuse_huerfano_cuenta_como_cero(self):
+        servicios.procesar_trama(acuse(11, 0xB1, protocolo.ACK_EN_CAMINO, 1), ahora=self.en(0))
+        servicios.procesar_trama(alerta(msg_id=1), ahora=self.en(30))
+        r = servicios.reporte_simulacro(self.en(-1), timezone.now())
+        self.assertEqual(r.filas[0].primer_acuse, 0.0)
+
+    def test_fuera_del_periodo_no_cuenta(self):
+        servicios.procesar_trama(alerta(msg_id=1), ahora=self.en(0))
+        r = servicios.reporte_simulacro(self.en(10), timezone.now())
+        self.assertEqual(r.total, 0)
+        self.assertIsNone(r.pct_atendidos)
+
+    def test_csv_y_periodo_invalido(self):
+        self.client.force_login(get_user_model().objects.create_user('resp', password='x'))
+        servicios.procesar_trama(alerta(msg_id=0xBEEF, texto='Atrapado'), ahora=self.en(0))
+        formato = '%Y-%m-%dT%H:%M'
+        periodo = {'desde': timezone.localtime(self.en(-60)).strftime(formato),
+                   'hasta': timezone.localtime(timezone.now() + timedelta(minutes=1)).strftime(formato)}
+        r = self.client.get(reverse('reporte_csv'), periodo)
+        lineas = r.content.decode('utf-8-sig').splitlines()
+        self.assertTrue(lineas[0].startswith('msg_id,categoria,prioridad'))
+        self.assertIn('0000BEEF', lineas[1])
+        self.assertIn('Atrapado', lineas[1])
+
+        r = self.client.get(reverse('reporte'), {'desde': periodo['hasta'], 'hasta': periodo['desde']})
+        self.assertContains(r, 'anterior al final')

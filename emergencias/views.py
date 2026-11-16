@@ -1,3 +1,6 @@
+import csv
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -5,13 +8,12 @@ from django.db.models import Case, IntegerField, Value, When
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import protocolo, servicios, teselas
-from .forms import AvisoForm, CensoForm, NotasForm
-from .models import (
-    Acuse, EstadoRadio, Incidente, Nodo, Recurso, TramaRecibida, TramaSaliente,
-)
+from .forms import AvisoForm, CensoForm, NotasForm, ReporteForm
+from .models import Acuse, EstadoRadio, Incidente, Nodo, Recurso, TramaSaliente, hex8
 
 _ORDEN_PRIORIDAD = {'rojo': 0, 'amarillo': 1, 'verde': 2}
 
@@ -174,16 +176,45 @@ def censo(request):
     })
 
 
+def _periodo_reporte(request):
+    """Periodo pedido o, por omisión, desde el inicio del censo vigente (o 24 h atrás) hasta ahora."""
+    ahora = timezone.now()
+    censo = servicios.censo_vigente()
+    form = ReporteForm(request.GET or None, initial={
+        'desde': timezone.localtime(censo.desde or ahora - timedelta(hours=24)),
+        'hasta': timezone.localtime(ahora),
+    })
+    if form.is_bound and form.is_valid():
+        return form, form.cleaned_data['desde'], form.cleaned_data['hasta']
+    return form, form.initial['desde'], form.initial['hasta']
+
+
 @login_required
-def nodos(request):
-    return render(request, 'emergencias/nodos.html', {
-        'nodos': Nodo.objects.exclude(sender_id=settings.PANEL_SENDER_ID),
+def reporte(request):
+    form, desde, hasta = _periodo_reporte(request)
+    return render(request, 'emergencias/reporte.html', {
+        'form': form, 'r': servicios.reporte_simulacro(desde, hasta),
+        'consulta': request.GET.urlencode(),
     })
 
 
 @login_required
-def bitacora(request):
-    return render(request, 'emergencias/bitacora.html', {
-        'recibidas': TramaRecibida.objects.all()[:150],
-        'salientes': TramaSaliente.objects.select_related('creada_por')[:50],
-    })
+def reporte_csv(request):
+    """Una fila por incidente, para analizar el simulacro en una hoja de cálculo."""
+    _, desde, hasta = _periodo_reporte(request)
+    r = servicios.reporte_simulacro(desde, hasta)
+    resp = HttpResponse(content_type='text/csv; charset=utf-8')
+    resp['Content-Disposition'] = (
+        f'attachment; filename="reporte_{timezone.localtime(desde):%Y%m%d_%H%M}.csv"')
+    resp.write('\ufeff')  # BOM: Excel abre bien los acentos
+    w = csv.writer(resp)
+    w.writerow(['msg_id', 'categoria', 'prioridad', 'estado', 'recibido_en', 'emisor',
+                'saltos', 'rssi', 'snr', 'seg_primer_acuse', 'seg_llegada', 'seg_resolucion',
+                'respondedores', 'texto'])
+    for f in r.filas:
+        i = f.incidente
+        w.writerow([hex8(i.msg_id), i.categoria_nombre, i.prioridad, i.estado,
+                    timezone.localtime(i.recibido_en).isoformat(timespec='seconds'),
+                    hex8(i.sender_id), i.saltos, i.rssi, i.snr,
+                    f.primer_acuse, f.llegada, f.resolucion, f.respondedores, i.texto])
+    return resp

@@ -16,10 +16,8 @@
     <a href="{% url 'incidentes' %}" class="{% if r == 'incidentes' or r == 'incidente_detalle' %}activo{% endif %}">Incidentes</a>
     <a href="{% url 'emitir_aviso' %}" class="{% if r == 'emitir_aviso' %}activo{% endif %}">Emitir aviso</a>
     <a href="{% url 'censo' %}" class="{% if r == 'censo' %}activo{% endif %}">Censo</a>
-    <a href="{% url 'nodos' %}" class="{% if r == 'nodos' %}activo{% endif %}">Nodos</a>
-    <a href="{% url 'bitacora' %}" class="{% if r == 'bitacora' %}activo{% endif %}">Bitácora</a>
+    <a href="{% url 'reporte' %}" class="{% if r == 'reporte' %}activo{% endif %}">Reporte</a>
     {% endwith %}
-    <a href="{% url 'admin:index' %}">Administración</a>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Salir ({{ user.username }})</button></form>
   </nav>
   {% endif %}

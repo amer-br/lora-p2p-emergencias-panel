@@ -7,11 +7,9 @@ Panel web (Django + PostgreSQL, en Docker) para el responsable de protección ci
 | **Tablero** | Mapa del campus con incidentes activos (por prioridad), recursos y última posición de cada nodo; estado de la radio, cifras del censo y nodos recientes. Se actualiza cada 5 s. |
 | **Incidentes** | Lista filtrable por estado y categoría. El detalle muestra los datos de la trama, la línea de tiempo de acuses y las acciones del responsable. |
 | **Acciones sobre un incidente** | *Brigada en camino* (ACK_EN_CAMINO), *Brigada en el sitio* (ACK_LLEGUE) y *Marcar como resuelto* (ACK_RESUELTO, solo después de llegar, CU-09). Cada una transmite un acuse de 20 B a la red. Notas internas que no se transmiten. |
-| **Emitir aviso** | Difunde una alerta (incendio, médica, estructural o SOS) con texto de hasta 32 bytes y, opcionalmente, una ubicación marcada en el mapa. |
-| **Censo** | Personas a salvo frente a nodos escuchados (CU-07), cada Sender_ID una vez; botón para iniciar un censo nuevo. |
-| **Nodos** | Teléfonos escuchados, con RSSI/SNR, número de tramas y última posición. |
-| **Bitácora** | Todas las tramas escuchadas (incluidas las inválidas) y las transmitidas por el panel. |
-| **Administración** | Admin de Django: recursos del mapa, alias de nodos, usuarios y datos crudos. |
+| **Emitir aviso** (CU-18) | Difunde a toda la red una alerta del puesto de mando (incendio, médica, estructural o SOS) con texto de hasta 32 bytes y, opcionalmente, una ubicación en el mapa. En la app aparece como «Aviso del puesto de mando». |
+| **Censo** (CU-19) | Personas a salvo frente a nodos escuchados, cada Sender_ID una vez; botón para iniciar un censo nuevo al comenzar una evacuación. |
+| **Reporte** (CU-20) | Métricas del simulacro en un periodo: incidentes recibidos, con respuesta, resueltos y sin atención; mediana, P95 y máximo del tiempo hasta el primer acuse, la llegada y la resolución; avisos, acuses del panel, personas a salvo y tramas válidas o descartadas. Se imprime o se descarga en CSV (una fila por incidente). |
 
 ## Arquitectura
 
@@ -51,7 +49,6 @@ Comandos útiles:
 
 ```
 docker compose logs -f radio                          # ver lo que escucha y transmite el panel
-docker compose exec web python manage.py createsuperuser
 docker compose down                                   # detener (los datos quedan en el volumen)
 docker compose down -v                                # detener y borrar la base de datos
 ```

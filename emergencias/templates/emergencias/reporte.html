@@ -1,0 +1,86 @@
+{% extends 'emergencias/base.html' %}
+{% load panel %}
+{% block titulo %}Reporte del simulacro{% endblock %}
+{% block contenido %}
+<h1>Reporte del simulacro</h1>
+
+<form method="get" class="filtros no-imprimir">
+  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <div><label for="{{ form.desde.id_for_label }}">{{ form.desde.label }}</label>{{ form.desde }}{{ form.desde.errors }}</div>
+  <div><label for="{{ form.hasta.id_for_label }}">{{ form.hasta.label }}</label>{{ form.hasta }}{{ form.hasta.errors }}</div>
+  <button class="boton secundario" type="submit">Actualizar</button>
+  <a class="boton secundario" href="{% url 'reporte_csv' %}{% if consulta %}?{{ consulta }}{% endif %}">Descargar CSV</a>
+  <button class="boton secundario" type="button" onclick="window.print()">Imprimir</button>
+</form>
+
+<p class="ayuda">
+  Periodo: {{ r.desde|date:"d/m/Y H:i" }} a {{ r.hasta|date:"d/m/Y H:i" }}.
+  Los tiempos se miden desde que el panel recibió cada incidente, con el reloj del panel.
+  Solo cuenta lo que escuchó la pasarela: si la computadora del panel estuvo apagada, ese intervalo no aparece.
+</p>
+
+<div class="dos-columnas">
+  <div class="tarjeta">
+    <h2>Incidentes</h2>
+    <div class="cifras">
+      <div class="cifra"><b>{{ r.total }}</b><span>recibidos</span></div>
+      <div class="cifra"><b>{{ r.atendidos }}</b><span>con respuesta{% if r.pct_atendidos is not None %} · {{ r.pct_atendidos }} %{% endif %}</span></div>
+      <div class="cifra"><b>{{ r.resueltos }}</b><span>resueltos{% if r.pct_resueltos is not None %} · {{ r.pct_resueltos }} %{% endif %}</span></div>
+    </div>
+    <p class="ayuda" style="margin:.6rem 0 0">
+      Prioridad: {{ r.por_prioridad.rojo }} roja · {{ r.por_prioridad.amarillo }} amarilla · {{ r.por_prioridad.verde }} verde.
+      {% if r.sin_atencion %}<b style="color:var(--rojo)">{{ r.sin_atencion }} sin atención.</b>{% endif %}
+    </p>
+  </div>
+  <div class="tarjeta">
+    <h2>Puesto de mando y red</h2>
+    <div class="cifras">
+      <div class="cifra"><b>{{ r.avisos_emitidos }}</b><span>avisos emitidos</span></div>
+      <div class="cifra"><b>{{ r.acuses_del_panel }}</b><span>acuses del panel</span></div>
+      <div class="cifra"><b>{{ r.a_salvo }}</b><span>personas a salvo</span></div>
+    </div>
+    <p class="ayuda" style="margin:.6rem 0 0">
+      {{ r.nodos_escuchados }} nodo{{ r.nodos_escuchados|pluralize }} escuchado{{ r.nodos_escuchados|pluralize }} ·
+      {{ r.tramas_validas }} trama{{ r.tramas_validas|pluralize }} válida{{ r.tramas_validas|pluralize }} y
+      {{ r.tramas_invalidas }} descartada{{ r.tramas_invalidas|pluralize }} (longitud, CRC o tipo).
+    </p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Tiempos de respuesta</h2>
+  <table>
+    <thead><tr><th>Desde que se recibió el incidente hasta…</th><th>Casos</th><th>Mediana</th><th>P95</th><th>Máximo</th></tr></thead>
+    <tbody>
+      <tr><td>el primer acuse</td><td class="num">{{ r.tiempo_primer_acuse.casos }}</td><td class="num">{{ r.tiempo_primer_acuse.mediana|duracion }}</td><td class="num">{{ r.tiempo_primer_acuse.p95|duracion }}</td><td class="num">{{ r.tiempo_primer_acuse.maximo|duracion }}</td></tr>
+      <tr><td>la primera llegada al sitio</td><td class="num">{{ r.tiempo_llegada.casos }}</td><td class="num">{{ r.tiempo_llegada.mediana|duracion }}</td><td class="num">{{ r.tiempo_llegada.p95|duracion }}</td><td class="num">{{ r.tiempo_llegada.maximo|duracion }}</td></tr>
+      <tr><td>la resolución</td><td class="num">{{ r.tiempo_resolucion.casos }}</td><td class="num">{{ r.tiempo_resolucion.mediana|duracion }}</td><td class="num">{{ r.tiempo_resolucion.p95|duracion }}</td><td class="num">{{ r.tiempo_resolucion.maximo|duracion }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Detalle por incidente</h2>
+  <div class="tabla-scroll">
+  <table>
+    <thead><tr><th>Recibido</th><th>Categoría</th><th>Estado</th><th>Emisor</th><th>Primer acuse</th><th>Llegada</th><th>Resolución</th><th>Respondedores</th></tr></thead>
+    <tbody>
+    {% for f in r.filas %}
+      <tr>
+        <td>{{ f.incidente.recibido_en|date:"d/m H:i:s" }}</td>
+        <td><a href="{% url 'incidente_detalle' f.incidente.pk %}"><span class="etiqueta p-{{ f.incidente.prioridad }}">{{ f.incidente.categoria_nombre }}</span></a></td>
+        <td><span class="etiqueta e-{{ f.incidente.estado }}">{{ f.incidente.get_estado_display }}</span></td>
+        <td><code>{{ f.incidente.sender_id|hex8 }}</code></td>
+        <td class="num">{{ f.primer_acuse|duracion }}</td>
+        <td class="num">{{ f.llegada|duracion }}</td>
+        <td class="num">{{ f.resolucion|duracion }}</td>
+        <td class="num">{{ f.respondedores }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="vacio">No se recibieron incidentes en este periodo.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

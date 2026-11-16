@@ -1,14 +1,17 @@
 """Procesador de tramas entrantes y acciones del responsable del campus.
 
-Reglas tomadas de la SRS v1: deduplicación por Msg_ID, estado consolidado del
-incidente a partir de sus acuses (tabla de estados de F6–F8), censo de
-evacuación por Sender_ID distinto (CU-07) y regla de quién puede marcar un
-incidente como resuelto (CU-09).
+Reglas de la SRS v2.0: deduplicación por Msg_ID, estado consolidado del
+incidente a partir de sus acuses (tabla de estados de F6–F8), regla de quién
+puede marcar un incidente como resuelto (CU-09), avisos del puesto de mando
+(CU-18), censo de evacuación por Sender_ID distinto (CU-19) y reporte del
+simulacro (CU-20).
 """
 
 from __future__ import annotations
 
 import logging
+import math
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timezone as dt_timezone
 
@@ -230,3 +233,130 @@ def censo_vigente() -> ResumenCenso:
 
 def iniciar_censo(usuario=None, motivo: str = '') -> Censo:
     return Censo.objects.create(iniciado_en=timezone.now(), iniciado_por=usuario, motivo=motivo)
+
+
+# --------------------------------------------------------------------------
+# Reporte del simulacro (CU-20)
+# --------------------------------------------------------------------------
+#
+# Todos los tiempos se miden con la hora local del panel (recibido_en), no
+# con la hora que reporta cada emisor, porque los relojes de los teléfonos
+# pueden estar desfasados (SDS 8.6). Solo cuenta lo que la pasarela escuchó:
+# un acuse que no llegó al panel no aparece en el reporte.
+
+@dataclass
+class FilaReporte:
+    incidente: Incidente
+    primer_acuse: float | None   # segundos desde que el panel recibió el incidente
+    llegada: float | None
+    resolucion: float | None
+    respondedores: int           # Sender_ID distintos que acusaron, sin contar al emisor
+
+
+@dataclass
+class EstadisticaTiempo:
+    casos: int
+    mediana: float | None
+    p95: float | None
+    maximo: float | None
+
+
+@dataclass
+class ReporteSimulacro:
+    desde: datetime
+    hasta: datetime
+    filas: list[FilaReporte]
+    por_prioridad: dict[str, int]
+    atendidos: int
+    resueltos: int
+    sin_atencion: int
+    tiempo_primer_acuse: EstadisticaTiempo
+    tiempo_llegada: EstadisticaTiempo
+    tiempo_resolucion: EstadisticaTiempo
+    avisos_emitidos: int
+    acuses_del_panel: int
+    a_salvo: int
+    nodos_escuchados: int
+    tramas_validas: int
+    tramas_invalidas: int
+
+    @property
+    def total(self) -> int:
+        return len(self.filas)
+
+    def _porcentaje(self, n: int) -> float | None:
+        return round(100 * n / self.total, 1) if self.total else None
+
+    @property
+    def pct_atendidos(self) -> float | None:
+        return self._porcentaje(self.atendidos)
+
+    @property
+    def pct_resueltos(self) -> float | None:
+        return self._porcentaje(self.resueltos)
+
+
+def _segundos_desde(inicio: datetime, fin: datetime | None) -> float | None:
+    # Un acuse puede llegar antes que su incidente (huérfano): cuenta como 0 s.
+    return None if fin is None else max((fin - inicio).total_seconds(), 0.0)
+
+
+def _p95(valores: list[float]) -> float:
+    """Percentil 95 por rango más cercano (sin interpolar)."""
+    ordenados = sorted(valores)
+    return ordenados[max(math.ceil(0.95 * len(ordenados)) - 1, 0)]
+
+
+def _estadistica(valores: list[float | None]) -> EstadisticaTiempo:
+    v = [x for x in valores if x is not None]
+    if not v:
+        return EstadisticaTiempo(0, None, None, None)
+    return EstadisticaTiempo(len(v), statistics.median(v), _p95(v), max(v))
+
+
+def reporte_simulacro(desde: datetime, hasta: datetime) -> ReporteSimulacro:
+    """Métricas de coordinación de la respuesta entre [desde, hasta]."""
+    panel = settings.PANEL_SENDER_ID
+    incidentes = (Incidente.objects
+                  .filter(recibido_en__gte=desde, recibido_en__lte=hasta, origen=Origen.RECIBIDO)
+                  .prefetch_related('acuses').order_by('recibido_en'))
+    filas = []
+    for i in incidentes:
+        acuses = sorted(i.acuses.all(), key=lambda a: a.recibido_en)
+
+        def primero(*tipos):
+            return next((a.recibido_en for a in acuses if a.tipo in tipos), None)
+
+        filas.append(FilaReporte(
+            incidente=i,
+            primer_acuse=_segundos_desde(i.recibido_en, primero(*protocolo.TIPOS_ACUSE)),
+            llegada=_segundos_desde(i.recibido_en, primero(protocolo.ACK_LLEGUE)),
+            resolucion=_segundos_desde(i.recibido_en, primero(protocolo.ACK_RESUELTO)),
+            respondedores=len({a.sender_id for a in acuses if a.sender_id != i.sender_id}),
+        ))
+
+    por_prioridad = {'rojo': 0, 'amarillo': 0, 'verde': 0}
+    for f in filas:
+        por_prioridad[f.incidente.prioridad] = por_prioridad.get(f.incidente.prioridad, 0) + 1
+
+    tramas = TramaRecibida.objects.filter(recibida_en__gte=desde, recibida_en__lte=hasta)
+    return ReporteSimulacro(
+        desde=desde, hasta=hasta, filas=filas, por_prioridad=por_prioridad,
+        atendidos=sum(1 for f in filas if f.primer_acuse is not None),
+        resueltos=sum(1 for f in filas if f.incidente.estado == Incidente.Estado.RESUELTO),
+        sin_atencion=sum(1 for f in filas if f.incidente.estado == Incidente.Estado.EMITIDO),
+        tiempo_primer_acuse=_estadistica([f.primer_acuse for f in filas]),
+        tiempo_llegada=_estadistica([f.llegada for f in filas]),
+        tiempo_resolucion=_estadistica([f.resolucion for f in filas]),
+        avisos_emitidos=Incidente.objects.filter(
+            origen=Origen.PROPIO, recibido_en__gte=desde, recibido_en__lte=hasta).count(),
+        acuses_del_panel=Acuse.objects.filter(
+            sender_id=panel, origen=Origen.PROPIO, recibido_en__gte=desde, recibido_en__lte=hasta).count(),
+        a_salvo=ReporteSafety.objects.filter(
+            estado=protocolo.A_SALVO, recibido_en__gte=desde, recibido_en__lte=hasta,
+        ).values('sender_id').distinct().count(),
+        nodos_escuchados=Nodo.objects.exclude(sender_id=panel).filter(
+            visto_por_ultima_vez__gte=desde).count(),
+        tramas_validas=tramas.filter(valida=True).count(),
+        tramas_invalidas=tramas.filter(valida=False).count(),
+    )
