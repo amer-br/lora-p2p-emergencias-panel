@@ -10,6 +10,9 @@ Formato (el mismo que usa el simulador de radio, SDS 8.8):
         {"hex": "0BADCAFE...", "rssi": -102, "snr": -3.0}
   * Panel -> pasarela: una línea por trama que se debe transmitir
         {"hex": "..."}
+  * Puente -> pasarela: latido cada 10 s mientras haya un panel conectado,
+    para que la pantalla del T-Beam muestre «Panel conectado»
+        {"ping": 1}
 
 Las líneas del puerto serie que no son tramas (mensajes de arranque o de
 depuración del firmware) se ignoran. Si se desconecta el USB, el puente cierra
@@ -53,6 +56,11 @@ CIERRE_RUTA = 1008        # política: ruta desconocida
 CIERRE_SIN_PASARELA = 1013  # inténtalo más tarde
 
 ESPERA_MAX = 30
+
+#: Latido hacia la pasarela mientras haya un panel conectado. El firmware
+#: muestra «Panel sin conexión» si pasa más de 25 s sin recibirlo.
+INTERVALO_LATIDO = 10
+LATIDO = b'{"ping": 1}\n'
 
 
 # ---------------------------------------------------------------------------
@@ -111,8 +119,10 @@ def linea_para_pasarela(mensaje: str | bytes) -> bytes | None:
 class Puente:
     """Mantiene el puerto serie abierto y lo comparte con los clientes WebSocket."""
 
-    def __init__(self, abrir_serie: Callable[[], serial.SerialBase]):
+    def __init__(self, abrir_serie: Callable[[], serial.SerialBase],
+                 intervalo_latido: float = INTERVALO_LATIDO):
         self._abrir_serie = abrir_serie
+        self._intervalo_latido = intervalo_latido
         self._serie: serial.SerialBase | None = None
         self._clientes: set[ServerConnection] = set()
         self._escritura = asyncio.Lock()
@@ -185,6 +195,13 @@ class Puente:
             log.warning('No se pudo escribir en la pasarela: %s', e)
             return False
         return True
+
+    async def latir(self) -> None:
+        """Avisa a la pasarela, cada cierto tiempo, que hay un panel conectado."""
+        while True:
+            if self._clientes and self.conectado:
+                await self._escribir(LATIDO)
+            await asyncio.sleep(self._intervalo_latido)
 
     # --- Lado WebSocket -----------------------------------------------------
 
@@ -269,7 +286,7 @@ async def ejecutar(puerto: str, baudios: int, host: str, puerto_ws: int) -> None
     async with serve(puente.atender, host, puerto_ws):
         log.info('Puente de radio en ws://%s:%s%s  (pasarela: %s a %s baudios)',
                  host, puerto_ws, RUTA_WS, puerto, baudios)
-        await puente.mantener_serie()
+        await asyncio.gather(puente.mantener_serie(), puente.latir())
 
 
 def main(argv: list[str] | None = None) -> None:

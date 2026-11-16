@@ -49,6 +49,7 @@ Una línea JSON por mensaje, terminada en `\n`, a 115 200 baudios:
 |---------|-------|-------|
 | Pasarela → puente | `{"hex": "0BADCAFE…", "rssi": -102, "snr": -3.0}` | Una por trama LoRa recibida. `rssi` y `snr` son opcionales. |
 | Puente → pasarela | `{"hex": "B2A53425…"}` | Trama que la pasarela debe transmitir por LoRa. |
+| Puente → pasarela | `{"ping": 1}` | Latido cada 10 s mientras haya un panel conectado; la pantalla del T-Beam muestra «Panel conectado». |
 
 - El campo `hex` lleva la trama binaria completa (alerta 56 B, acuse 20 B o Safety Check 17 B) en hexadecimal; el puente no la interpreta, solo comprueba que sea hexadecimal válido de hasta 255 bytes. El CRC lo validan el panel y la app.
 - Cualquier otra línea (mensajes de arranque del ESP32, depuración) se ignora; se ve con `-v`.

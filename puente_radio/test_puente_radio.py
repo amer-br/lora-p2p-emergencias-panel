@@ -141,6 +141,25 @@ class PuenteTest(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.05)
         self.assertTrue(self.puente.conectado)
 
+    async def test_latido_solo_con_panel_conectado(self):
+        serie = SerieDesconectable()
+        await self.iniciar(lambda: serie)
+        self.puente._intervalo_latido = 0.05
+        latido = asyncio.create_task(self.puente.latir())
+        try:
+            await asyncio.wait_for(self.puente.listo.wait(), 3)
+            await asyncio.sleep(0.2)
+            self.assertEqual(serie.escrito, [], 'sin panel no debe haber latido')
+
+            async with connect(self.url):
+                for _ in range(50):
+                    if serie.escrito:
+                        break
+                    await asyncio.sleep(0.02)
+            self.assertIn(pr.LATIDO, serie.escrito)
+        finally:
+            latido.cancel()
+
     async def test_ruta_desconocida(self):
         await self.iniciar(pr.abridor_serie('loop://', pr.BAUDIOS))
         async with connect(self.url.replace('/ws', '/otra')) as ws:
