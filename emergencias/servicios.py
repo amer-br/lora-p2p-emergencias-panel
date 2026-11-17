@@ -1,6 +1,6 @@
 """Procesador de tramas entrantes y acciones del responsable del campus.
 
-Reglas de la SRS v2.0: deduplicación por Msg_ID, estado consolidado del
+Reglas de la SRS: deduplicación por Msg_ID, estado consolidado del
 incidente a partir de sus acuses (tabla de estados de F6–F8), regla de quién
 puede marcar un incidente como resuelto (CU-09), avisos del puesto de mando
 (CU-18), censo de evacuación por Sender_ID distinto (CU-19) y reporte del
